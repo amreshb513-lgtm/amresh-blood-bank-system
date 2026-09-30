@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Donor directory and blood bank dashboard API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: donors
+    description: Donor registration and search
+  - name: dashboard
+    description: Live donor directory metrics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /donors:
+    get:
+      operationId: getDonors
+      tags: [donors]
+      summary: Search registered donors
+      parameters:
+        - name: bloodGroup
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/BloodGroup"
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+        - name: available
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Matching donors, with contact details shared only by donors who consented
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donor"
+        "400":
+          description: Invalid search filters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createDonor
+      tags: [donors]
+      summary: Register as a donor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonorInput"
+      responses:
+        "201":
+          description: Registered donor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donor"
+        "400":
+          description: Invalid donor details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Read live donor directory totals
+      responses:
+        "200":
+          description: Donor directory summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    BloodGroup:
+      type: string
+      enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+    Donor:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        bloodGroup:
+          $ref: "#/components/schemas/BloodGroup"
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: ["string", "null"]
+        phone:
+          type: string
+        available:
+          type: boolean
+        lastDonationDate:
+          type: ["string", "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fullName
+        - bloodGroup
+        - city
+        - state
+        - pincode
+        - phone
+        - available
+        - lastDonationDate
+        - createdAt
+    DonorInput:
+      type: object
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+        bloodGroup:
+          $ref: "#/components/schemas/BloodGroup"
+        city:
+          type: string
+          minLength: 2
+          maxLength: 100
+        state:
+          type: string
+          minLength: 2
+          maxLength: 100
+        pincode:
+          type: string
+          pattern: "^[0-9]{6}$"
+        phone:
+          type: string
+          pattern: "^[6-9][0-9]{9}$"
+        available:
+          type: boolean
+          default: true
+        lastDonationDate:
+          type: string
+          format: date
+        consentToContact:
+          type: boolean
+          const: true
+      required:
+        - fullName
+        - bloodGroup
+        - city
+        - state
+        - phone
+        - consentToContact
+    BloodGroupCount:
+      type: object
+      properties:
+        bloodGroup:
+          $ref: "#/components/schemas/BloodGroup"
+        count:
+          type: integer
+      required: [bloodGroup, count]
+    DashboardSummary:
+      type: object
+      properties:
+        totalDonors:
+          type: integer
+        availableDonors:
+          type: integer
+        citiesCovered:
+          type: integer
+        bloodGroupsRepresented:
+          type: integer
+        byBloodGroup:
+          type: array
+          items:
+            $ref: "#/components/schemas/BloodGroupCount"
+      required:
+        - totalDonors
+        - availableDonors
+        - citiesCovered
+        - bloodGroupsRepresented
+        - byBloodGroup
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+

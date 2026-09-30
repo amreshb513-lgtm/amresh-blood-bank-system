@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Amresh Blood Bank System"
+description = "A responsive blood donor directory branded for Amresh Kumar Yadav, with donor registration and searchable blood-group/location matching backed by PHP and persistent data."
+version = "1.0.0"
+id = "artifacts/amresh-blood-bank"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20970
+
+[services.development]
+run = "pnpm --filter @workspace/amresh-blood-bank run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/amresh-blood-bank", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/amresh-blood-bank/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20970"
+BASE_PATH = "/"
